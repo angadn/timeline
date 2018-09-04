@@ -33,6 +33,17 @@ func (tl *Timeline) Append(callback Callback, triggerAt time.Time) (chain *Timel
 	return
 }
 
+func (tl *Timeline) AppendInterspersed(
+	startAt time.Time, interval time.Duration, callbacks ...Callback,
+) (chain *Timeline) {
+	for i, cb := range callbacks {
+		tl.Append(cb, startAt.Add(time.Duration(float64(i))*interval))
+	}
+
+	chain = tl
+	return
+}
+
 func (tl *Timeline) Start() {
 	ticker := time.NewTicker(time.Second)
 	for {
