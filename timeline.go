@@ -62,26 +62,22 @@ func (tl *Timeline) Start() {
 	ticker := time.NewTicker(time.Second)
 	for {
 		<-ticker.C
-		go func() {
-			for i, e := range tl.events {
-				func(i int, e Event) {
-					if !e.isDone && e.duration <= time.Now().Sub(tl.epoch) {
-						go e.callback()
-						tl.events[i].isDone = true
-					}
-				}(i, e)
-			}
 
-			tl.lock.Lock()
-			defer tl.lock.Unlock()
-
-			events := []Event{}
-			for _, e := range tl.events {
-				if !e.isDone {
-					events = append(events, e)
-				}
+		for i, e := range tl.events {
+			if !e.isDone && e.duration <= time.Now().Sub(tl.epoch) {
+				go e.callback()
+				tl.events[i].isDone = true
 			}
-			tl.events = events
-		}()
+		}
+
+		tl.lock.Lock()
+		events := []Event{}
+		for _, e := range tl.events {
+			if !e.isDone {
+				events = append(events, e)
+			}
+		}
+		tl.events = events
+		tl.lock.Unlock()
 	}
 }
