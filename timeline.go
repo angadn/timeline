@@ -20,6 +20,7 @@ func New() (tl *Timeline) {
 type Event struct {
 	duration time.Duration
 	callback Callback
+	isDone   bool
 }
 
 type Callback func()
@@ -60,16 +61,24 @@ func (tl *Timeline) Start() {
 		<-ticker.C
 		go func() {
 			for i, e := range tl.events {
-				func(i int, e Event) {
-					if e.duration <= time.Now().Sub(tl.epoch) {
+				go func(i int, e Event) {
+					if !e.isDone && e.duration <= time.Now().Sub(tl.epoch) {
 						go e.callback()
+						e.isDone = true
 					}
-
-					tl.lock.Lock()
-					tl.events = append(tl.events[0:i], tl.events[i+1:]...)
-					tl.lock.Unlock()
 				}(i, e)
 			}
+
+			tl.lock.Lock()
+			defer tl.lock.Unlock()
+
+			events := []Event{}
+			for _, e := range tl.events {
+				if !e.isDone {
+					events = append(events, e)
+				}
+			}
+			tl.events = events
 		}()
 	}
 }
