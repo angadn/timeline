@@ -7,7 +7,7 @@ import (
 
 type Timeline struct {
 	epoch  time.Time
-	events []*Event
+	events []Event
 	lock   sync.Mutex
 }
 
@@ -32,7 +32,7 @@ func (tl *Timeline) Append(callback Callback, triggerAt time.Time) (chain *Timel
 	var event Event
 	event.callback = callback
 	event.duration = triggerAt.Sub(tl.epoch)
-	tl.events = append(tl.events, &event)
+	tl.events = append(tl.events, event)
 
 	chain = tl
 	return
@@ -63,19 +63,19 @@ func (tl *Timeline) Start() {
 	for {
 		<-ticker.C
 		go func() {
-			for _, e := range tl.events {
-				go func(e *Event) {
+			for i, e := range tl.events {
+				func(i int, e Event) {
 					if !e.isDone && e.duration <= time.Now().Sub(tl.epoch) {
 						go e.callback()
-						e.isDone = true
+						tl.events[i].isDone = true
 					}
-				}(e)
+				}(i, e)
 			}
 
 			tl.lock.Lock()
 			defer tl.lock.Unlock()
 
-			events := []*Event{}
+			events := []Event{}
 			for _, e := range tl.events {
 				if !e.isDone {
 					events = append(events, e)
