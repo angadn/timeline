@@ -26,6 +26,9 @@ type Event struct {
 type Callback func()
 
 func (tl *Timeline) Append(callback Callback, triggerAt time.Time) (chain *Timeline) {
+	tl.lock.Lock()
+	defer tl.lock.Lock()
+
 	var event Event
 	event.callback = callback
 	event.duration = triggerAt.Sub(tl.epoch)
