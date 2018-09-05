@@ -12,6 +12,7 @@ type Timeline struct {
 }
 
 func New() (tl *Timeline) {
+	tl = new(Timeline)
 	tl.epoch = time.Now()
 	return
 }
@@ -36,9 +37,18 @@ func (tl *Timeline) Append(callback Callback, triggerAt time.Time) (chain *Timel
 func (tl *Timeline) AppendInterspersed(
 	startAt time.Time, interval time.Duration, callbacks ...Callback,
 ) (chain *Timeline) {
-	for i, cb := range callbacks {
-		tl.Append(cb, startAt.Add(time.Duration(float64(i))*interval))
+	if len(callbacks) == 0 {
+		return
 	}
+
+	tl.Append(func() {
+		go callbacks[0]()
+		tl.AppendInterspersed(
+			startAt.Add(interval),
+			interval,
+			callbacks[1:]...,
+		)
+	}, startAt)
 
 	chain = tl
 	return
