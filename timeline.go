@@ -60,13 +60,14 @@ func (tl *Timeline) Start() {
 		<-ticker.C
 		go func() {
 			for i, e := range tl.events {
-				go func(i int, e Event) {
+				func(i int, e Event) {
 					if e.duration <= time.Now().Sub(tl.epoch) {
-						e.callback()
-						tl.lock.Lock()
-						tl.events = append(tl.events[0:i], tl.events[i+1:]...)
-						tl.lock.Unlock()
+						go e.callback()
 					}
+
+					tl.lock.Lock()
+					tl.events = append(tl.events[0:i], tl.events[i+1:]...)
+					tl.lock.Unlock()
 				}(i, e)
 			}
 		}()
